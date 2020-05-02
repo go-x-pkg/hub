@@ -33,6 +33,12 @@ func (h *Hub) StopNonBlock() {
 	default:
 	}
 }
+func (h *Hub) StopWithContext(ctx context.Context) {
+	select {
+	case <-h.done:
+	case <-ctx.Done():
+	}
+}
 func (h *Hub) Done() { <-h.done }
 func (h *Hub) DoneWithContext(ctx context.Context) {
 	select {
@@ -124,6 +130,10 @@ func (h *Hub) Sub(capacity int) (sub chan interface{}) {
 	return sub
 }
 
+func (h *Hub) Unsub(sub chan interface{}) {
+	h.unsub <- sub
+}
+
 func (h *Hub) UnsubNonBlock(sub chan interface{}) {
 	select {
 	case h.unsub <- sub:
@@ -131,14 +141,24 @@ func (h *Hub) UnsubNonBlock(sub chan interface{}) {
 	}
 }
 
-func (h *Hub) Unsub(sub chan interface{}) {
-	h.unsub <- sub
-}
-
 func (h *Hub) UnsubWithTimeout(sub chan interface{}, timeout time.Duration) {
+	timer := time.NewTimer(timeout)
+	defer func() {
+		if !timer.Stop() {
+			<-timer.C
+		}
+	}()
+
 	select {
 	case h.unsub <- sub:
-	case <-time.After(timeout):
+	case <-timer.C:
+	}
+}
+
+func (h *Hub) UnsubWithContext(sub chan interface{}, ctx context.Context) {
+	select {
+	case h.unsub <- sub:
+	case <-ctx.Done():
 	}
 }
 
