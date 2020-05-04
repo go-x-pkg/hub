@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	// chans, goroutines, workers timeout
+	timeout = 100 * time.Millisecond
+)
+
 // wgWaitTimeout waits for the waitgroup for the specified max timeout.
 // Returns true if waiting timed out.
 func wgWaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
@@ -53,9 +58,6 @@ func TestHub(t *testing.T) {
 	// workers to subscribe
 	subsCount := 1000
 
-	// chans, goroutines, workers timeout
-	timeout := 100 * time.Millisecond
-
 	tests := []struct {
 		subCapacity int
 
@@ -70,17 +72,17 @@ func TestHub(t *testing.T) {
 
 		{-1, &mockMsg{}},
 		{5, &mockMsg{}},
+
+		{3, &mockMsg{}},
 	}
 
 	for _, tt := range tests {
 		func() {
-			hub := new(Hub)
+			hub := NewHub()
 
 			if hub == nil {
 				t.Fatalf("hub allocation failed")
 			}
-
-			hub.Init()
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -142,5 +144,77 @@ func TestHub(t *testing.T) {
 				t.Errorf("hub doesn't done in time")
 			}
 		}()
+	}
+}
+
+func TestStopDone(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	hub := NewHub()
+	go hub.Start(ctx)
+
+	_ = hub.Sub(-1)
+	_ = hub.Sub(0)
+	_ = hub.Sub(1)
+
+	hub.StopNonBlock()
+	hub.StopNonBlock()
+
+	stopCtx, cancelStopCtx := context.WithTimeout(ctx, timeout)
+	defer cancelStopCtx()
+	hub.StopWithContext(stopCtx)
+
+	if err := stopCtx.Err(); err == nil {
+		t.Errorf("hub stop doesn't care about context")
+	}
+
+	doneWg := sync.WaitGroup{}
+	doneWg.Add(1)
+	go func() {
+		defer doneWg.Done()
+		hub.Done()
+	}()
+
+	if wgWaitTimeout(&doneWg, timeout) {
+		t.Fatalf("hub done failed")
+	}
+
+	doneCtx, cancelDoneCtx := context.WithTimeout(ctx, timeout)
+	defer cancelDoneCtx()
+	hub.DoneWithContext(doneCtx)
+
+	if err := doneCtx.Err(); err == nil {
+		t.Errorf("hub done doesn't care about context")
+	}
+}
+
+func TestStartNilCtx(t *testing.T) {
+	hub := NewHub()
+	go hub.Start(nil)
+
+	hub.StopNonBlock()
+	hub.Done()
+}
+
+// test hub can be canceled via ctx
+func TestStartWithCtx(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	hub := NewHub()
+	go hub.Start(ctx)
+
+	// cancel hub via ctx
+	cancel()
+
+	doneWg := sync.WaitGroup{}
+	doneWg.Add(1)
+	go func() {
+		defer doneWg.Done()
+		hub.Done()
+	}()
+
+	if wgWaitTimeout(&doneWg, timeout) {
+		t.Fatalf("hub done failed")
 	}
 }

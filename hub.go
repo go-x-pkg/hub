@@ -35,7 +35,7 @@ func (h *Hub) StopNonBlock() {
 }
 func (h *Hub) StopWithContext(ctx context.Context) {
 	select {
-	case <-h.done:
+	case h.stop <- struct{}{}:
 	case <-ctx.Done():
 	}
 }
