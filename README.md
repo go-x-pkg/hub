@@ -1,6 +1,6 @@
 # hub
 
-[![GoDoc][godoc-image]][godoc-url]
+[![GoDev][godev-image]][godev-url]
 [![Build Status][build-image]][build-url]
 [![Coverage Status][coverage-image]][coverage-url]
 [![Go Report Card][goreport-image]][goreport-url]
@@ -9,8 +9,8 @@ Golang chan broadcasting library.
 
 See [original stackoverflow answer](https://stackoverflow.com/a/49877632).
 
-[godoc-image]: https://godoc.org/github.com/go-x-pkg/hub?status.svg
-[godoc-url]: https://godoc.org/github.com/go-x-pkg/hub
+[godev-image]: https://img.shields.io/badge/go.dev-reference-5272B4?logo=go&logoColor=white
+[godev-url]: https://pkg.go.dev/github.com/go-x-pkg/hub
 
 [build-image]: https://travis-ci.org/go-x-pkg/hub.svg?branch=master
 [build-url]: https://travis-ci.org/go-x-pkg/hub
