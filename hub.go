@@ -155,7 +155,7 @@ func (h *Hub) UnsubWithTimeout(sub chan interface{}, timeout time.Duration) {
 	}
 }
 
-func (h *Hub) UnsubWithContext(sub chan interface{}, ctx context.Context) {
+func (h *Hub) UnsubWithContext(ctx context.Context, sub chan interface{}) {
 	select {
 	case h.unsub <- sub:
 	case <-ctx.Done():
