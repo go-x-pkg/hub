@@ -33,6 +33,7 @@ func (h *Hub) StopNonBlock() {
 	default:
 	}
 }
+
 func (h *Hub) StopWithContext(ctx context.Context) {
 	select {
 	case h.stop <- struct{}{}:
@@ -130,6 +131,21 @@ func (h *Hub) Sub(capacity int) (sub chan interface{}) {
 	return sub
 }
 
+func (h *Hub) SubWithContext(ctx context.Context, capacity int) (sub chan interface{}) {
+	if capacity <= 0 {
+		sub = make(chan interface{})
+	} else {
+		sub = make(chan interface{}, capacity)
+	}
+
+	select {
+	case h.sub <- sub:
+	case <-ctx.Done():
+	}
+
+	return sub
+}
+
 func (h *Hub) Unsub(sub chan interface{}) {
 	h.unsub <- sub
 }
@@ -164,6 +180,13 @@ func (h *Hub) UnsubWithContext(ctx context.Context, sub chan interface{}) {
 
 func (h *Hub) Pub(msg interface{}) {
 	h.pub <- msg
+}
+
+func (h *Hub) PubWithContext(ctx context.Context, msg interface{}) {
+	select {
+	case h.pub <- msg:
+	case <-ctx.Done():
+	}
 }
 
 func (h *Hub) Init() {
